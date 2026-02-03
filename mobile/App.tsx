@@ -9,11 +9,17 @@ import {
 	Alert,
 	ActivityIndicator,
 	RefreshControl,
-	SafeAreaView,
 	StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Expense, CATEGORY_EMOJIS } from "./src/types";
-import { addExpense, getExpenses, deleteExpense } from "./src/services/api";
+import { parseExpenseWithAI } from "./src/services/api";
+import {
+	initializeDatabase,
+	createExpense,
+	getAllExpenses,
+	deleteExpense as deleteExpenseFromDB,
+} from "./src/services/database";
 import { timeAgo } from "./src/utils/timeAgo";
 
 export default function App() {
@@ -23,14 +29,25 @@ export default function App() {
 	const [refreshing, setRefreshing] = useState(false);
 	const [successExpense, setSuccessExpense] = useState<Expense | null>(null);
 	const [deletingId, setDeletingId] = useState<number | null>(null);
+	const [dbReady, setDbReady] = useState(false);
 
 	useEffect(() => {
-		loadExpenses();
+		setupDatabase();
 	}, []);
+
+	const setupDatabase = async () => {
+		try {
+			await initializeDatabase();
+			setDbReady(true);
+			await loadExpenses();
+		} catch (error: any) {
+			Alert.alert("Database Error", error.message);
+		}
+	};
 
 	const loadExpenses = async () => {
 		try {
-			const data = await getExpenses();
+			const data = await getAllExpenses();
 			setExpenses(data);
 		} catch (error: any) {
 			Alert.alert("Error", error.message);
@@ -39,10 +56,22 @@ export default function App() {
 
 	const handleAddExpense = async () => {
 		if (!input.trim()) return;
+		if (!dbReady) {
+			Alert.alert("Error", "Database not ready");
+			return;
+		}
 
 		setLoading(true);
 		try {
-			const expense = await addExpense(input);
+			// Parse with AI
+			const parsed = await parseExpenseWithAI(input);
+
+			// Save to local database
+			const expense = await createExpense({
+				...parsed,
+				original_input: input,
+			});
+
 			setExpenses([expense, ...expenses]);
 			setInput("");
 			setSuccessExpense(expense);
@@ -66,7 +95,7 @@ export default function App() {
 					onPress: async () => {
 						setDeletingId(id);
 						try {
-							await deleteExpense(id);
+							await deleteExpenseFromDB(id);
 							setExpenses(expenses.filter((e) => e.id !== id));
 						} catch (error: any) {
 							Alert.alert("Error", error.message);
@@ -116,8 +145,17 @@ export default function App() {
 		</View>
 	);
 
+	if (!dbReady) {
+		return (
+			<SafeAreaView style={[styles.container, styles.centerContent]}>
+				<ActivityIndicator size="large" color="#4CAF50" />
+				<Text style={styles.loadingText}>Initializing database...</Text>
+			</SafeAreaView>
+		);
+	}
+
 	return (
-		<SafeAreaView style={styles.container}>
+		<SafeAreaView style={styles.container} edges={["top"]}>
 			<StatusBar barStyle="dark-content" />
 
 			<View style={styles.header}>
@@ -197,7 +235,7 @@ export default function App() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#f5f5f5",
+		backgroundColor: "#fff",
 	},
 	header: {
 		padding: 20,
@@ -354,5 +392,14 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: "#bbb",
 		marginTop: 8,
+	},
+	centerContent: {
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	loadingText: {
+		marginTop: 16,
+		fontSize: 16,
+		color: "#666",
 	},
 });

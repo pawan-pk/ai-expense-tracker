@@ -36,10 +36,13 @@ All detailed documentation is available in the [`documentation/`](documentation/
 
 - **Natural Language Input**: Just type "spent 500 on coffee" and AI handles the rest
 - **Automatic Categorization**: AI categorizes expenses into 8 categories
+- **Offline Storage**: All expenses stored locally on your device with SQLite
+- **Works Offline**: View and delete expenses without internet (only AI parsing needs internet)
 - **Real-time Updates**: See expenses appear instantly
 - **Pull to Refresh**: Keep your expense list up to date
 - **Delete Expenses**: Remove expenses with confirmation
 - **Cross-platform**: Works on iOS, Android, and Web
+- **Privacy First**: Your data stays on your device
 
 ## 🛠️ Tech Stack
 
@@ -47,14 +50,15 @@ All detailed documentation is available in the [`documentation/`](documentation/
 
 - Node.js + Express
 - TypeScript
-- SQLite (better-sqlite3)
-- Groq AI API (or OpenAI/Gemini compatible)
+- Groq AI API (llama-3.3-70b-versatile)
+- Stateless (no database)
 
 **Mobile:**
 
-- React Native
-- Expo
+- React Native with Expo SDK 54
 - TypeScript
+- expo-sqlite (local SQLite database)
+- Offline-first architecture
 
 ## 📋 Prerequisites
 
@@ -86,7 +90,7 @@ Edit `.env` and add your AI API key:
 PORT=3000
 AI_API_KEY=your_groq_api_key_here
 AI_API_URL=https://api.groq.com/openai/v1/chat/completions
-AI_MODEL=llama-3.1-70b-versatile
+AI_MODEL=llama-3.3-70b-versatile
 ```
 
 **Get a Groq API Key (Free):**
@@ -159,16 +163,24 @@ Test with curl:
 # Health check
 curl http://localhost:3000/health
 
-# Add expense
-curl -X POST http://localhost:3000/api/expenses \
+# Parse expense with AI
+curl -X POST http://localhost:3000/api/parse \
   -H "Content-Type: application/json" \
   -d '{"input": "spent 500 on coffee at Starbucks"}'
+```
 
-# Get all expenses
-curl http://localhost:3000/api/expenses
+Expected response:
 
-# Delete expense (replace 1 with actual ID)
-curl -X DELETE http://localhost:3000/api/expenses/1
+```json
+{
+	"parsed": {
+		"amount": 500,
+		"currency": "INR",
+		"category": "Food & Dining",
+		"description": "Coffee",
+		"merchant": "Starbucks"
+	}
+}
 ```
 
 ## 📂 Project Structure
@@ -177,24 +189,19 @@ curl -X DELETE http://localhost:3000/api/expenses/1
 ai-expense-tracker/
 ├── backend/
 │   ├── src/
-│   │   ├── database/
-│   │   │   └── db.ts              # SQLite setup & CRUD
-│   │   ├── routes/
-│   │   │   └── expenses.ts        # API endpoints
 │   │   ├── services/
-│   │   │   └── aiService.ts       # AI parsing logic
+│   │   │   └── aiService.ts       # AI parsing logic (Groq API)
 │   │   ├── types/
 │   │   │   └── index.ts           # TypeScript interfaces
-│   │   └── index.ts               # Express server
+│   │   └── index.ts               # Express server (AI parsing only)
 │   ├── package.json
 │   └── .env
 │
 └── mobile/
     ├── src/
-    │   ├── components/            # (future components)
-    │   ├── screens/               # (future screens)
     │   ├── services/
-    │   │   └── api.ts             # API client
+    │   │   ├── database.ts        # SQLite operations (local storage)
+    │   │   └── api.ts             # AI parsing API client
     │   ├── types/
     │   │   └── index.ts           # TypeScript interfaces
     │   └── utils/
@@ -240,8 +247,30 @@ The AI categorizes expenses into:
 **Expenses not showing:**
 
 - Pull down to refresh
-- Check backend logs
-- Verify database file was created (expenses.db)
+- Check if database initialized (restart app if needed)
+- Check console logs for errors
+
+## 📖 Architecture
+
+The app uses an **offline-first architecture**:
+
+1. **User Input** → Mobile app
+2. **AI Parsing** → Backend API (requires internet)
+3. **Local Storage** → SQLite on device (works offline)
+4. **Display** → Mobile app (works offline)
+
+**Benefits:**
+
+- ✅ Works offline (except AI parsing)
+- ✅ Fast performance (no network latency for CRUD)
+- ✅ Privacy (data stays on device)
+- ✅ Simple backend (stateless, easy to deploy)
+
+See [ARCHITECTURE.md](documentation/ARCHITECTURE.md) for detailed architecture documentation.
+
+## 🔄 Migration from Old Version
+
+If you're upgrading from the old version where SQLite was in the backend, see [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for detailed migration instructions.
 
 ## 🚀 Next Steps
 

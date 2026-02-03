@@ -5,18 +5,17 @@
 		"version": "1.0.0",
 		"orientation": "portrait",
 		"userInterfaceStyle": "light",
-		"splash": {
-			"resizeMode": "contain",
-			"backgroundColor": "#ffffff"
-		},
 		"ios": {
 			"supportsTablet": true
 		},
 		"android": {
-			"adaptiveIcon": {
-				"backgroundColor": "#ffffff"
-			}
+			"package": "com.pawanpk.aiexpensetracker"
 		},
-		"web": {}
+		"web": {},
+		"extra": {
+			"eas": {
+				"projectId": "0d1b18db-874d-4a7b-bfcd-d72af4c2e937"
+			}
+		}
 	}
 }

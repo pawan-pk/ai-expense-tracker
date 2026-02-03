@@ -69,8 +69,8 @@ export async function parseExpense(text: string): Promise<ParsedExpense> {
 			throw new Error(`AI API error: ${response.statusText}`);
 		}
 
-		const data = await response.json();
-		const content = data.choices[0]?.message?.content;
+		const data = (await response.json()) as any;
+		const content = data.choices[0]?.message?.content as string;
 
 		if (!content) {
 			throw new Error("No response from AI");
