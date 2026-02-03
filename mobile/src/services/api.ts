@@ -4,7 +4,7 @@ import { ExpenseInput } from "../types";
 // For iOS simulator: localhost works
 // For Android emulator: use 10.0.2.2
 // For physical device: use your computer's local IP (e.g., 192.168.1.x)
-const API_BASE_URL = "http://192.168.29.138:3000";
+const API_BASE_URL = "https://ai-expense-tracker.up.railway.app";
 
 export async function parseExpenseWithAI(input: string): Promise<ExpenseInput> {
 	const controller = new AbortController();
@@ -23,6 +23,8 @@ export async function parseExpenseWithAI(input: string): Promise<ExpenseInput> {
 		clearTimeout(timeoutId);
 
 		const data = await response.json();
+
+		console.log("data", data);
 
 		if (!response.ok) {
 			throw new Error(data.error || "Failed to parse expense");
